@@ -4,15 +4,58 @@ import time
 import os
 from supabase import create_client, Client
 from datetime import datetime
-
+import sys
+#-----CAMBIAR URL DE SCRAPING y nombre de minero -----
 minero = 'Sebastian Castro'
+linkscrap = 'https://www.reddit.com/r/chile/comments/1cqupkx/discusi%C3%B3n_random_semanal/ '
+
+
+
 #-----CONFIGURACIONES SELENIUM-----
 
 options = webdriver.ChromeOptions()
 options.add_experimental_option('excludeSwitches', ['enable-logging'])
 driver = webdriver.Chrome(options=options)
-#-----DESCOMENTAR Y CAMBIAR URL DE SCRAPING-----
-#driver.get("https://www.reddit.com/r/chile/comments/1csug68/la_normalizaci%C3%B3n_de_las_drogas_est%C3%A1_dejando_la/")
+driver.get(linkscrap)
+
+
+#-----CONFIGURACIONES SUPABASE-----
+
+url = "https://vrdvsuoyecwnqqpjfrzs.supabase.co"
+key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyZHZzdW95ZWN3bnFxcGpmcnpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTYwOTEzMzcsImV4cCI6MjAzMTY2NzMzN30.0V-0HYbfxjhGJBUEE8DQK0tbyWmCLCMp1NP40AEXShw"
+supabase = create_client(url, key)
+id_url_paracom = -1
+
+# Función para validar URL y realizar scraping
+def validar_url(linkscrap):
+    global id_url_paracom
+    try:
+        # Verificar si la URL ya existe en la base de datos
+        response = supabase.table('URLS').select('ruta').eq('ruta', linkscrap).execute()
+        if response.data:
+            print("La URL ya ha sido scrappeada anteriormente. Cerrando el programa.")
+            sys.exit()
+        else:
+            # Insertar la nueva URL en la base de datos y obtener el ID
+            insert_response = supabase.table('URLS').insert({
+                'ruta': linkscrap,
+                'minero': minero,
+                'fecha_add': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }).execute()
+
+            # Recuperar el ID de la URL insertada
+            if insert_response.data:
+                url_id = insert_response.data[0]['id_url']
+                print(f"La URL ha sido registrada con ID: {url_id}")
+                id_url_paracom = url_id
+            else:
+                print("Error al insertar la URL.")
+                return None
+    except Exception as e:
+        print("Error al validar o insertar la URL:", e)
+        return None
+
+validar_url(linkscrap)
 
 #-----Funcion para hacer scroll a la parte inferior de la pagina y esperar 3 segundos-----
 def Scroll_Down_Page():
@@ -78,25 +121,22 @@ print('Cantidad de comentarios =', len(comentarios_array))
 
 
 #-----Guardar los comentarios limpios en una base de datos -----
-url = ""
-key = ""
-
-supabase = create_client(url, key)
-
-def insertar_comentarios(comentarios_array, url, key, minero):
+def insertar_comentarios(comentarios_array, minero,id_url_paracom):
     try:
         for comentario in comentarios_array:
             supabase.table('Comentarios').insert({
                 'usuario': comentario['autor'],
                 'comentario': comentario['comentario'],
                 'fecha_com': comentario['fecha'],
-                'minero': minero,  # Agregar el minero al comentario
-                'fecha_add': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                'minero': minero,  
+                'fecha_add': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'id_url': id_url_paracom
             }).execute()
+            
 
         print("Comentarios a;adidos .")
     
     except Exception as e:
         print("Error :", e)
 
-#insertar_comentarios(comentarios_array,url,key,minero) ESTA COMENTADO PORQUE NECESITA METODOS DE VALIDACION (QUE NO SE REPITA LA URL) 
+insertar_comentarios(comentarios_array,minero,id_url_paracom) 
