@@ -1,13 +1,18 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 import time
+import os
+from supabase import create_client, Client
+from datetime import datetime
 
+minero = 'Sebastian Castro'
 #-----CONFIGURACIONES SELENIUM-----
 
 options = webdriver.ChromeOptions()
 options.add_experimental_option('excludeSwitches', ['enable-logging'])
 driver = webdriver.Chrome(options=options)
-driver.get("https://www.reddit.com/r/chile/comments/1csug68/la_normalizaci%C3%B3n_de_las_drogas_est%C3%A1_dejando_la/")
+#-----DESCOMENTAR Y CAMBIAR URL DE SCRAPING-----
+#driver.get("https://www.reddit.com/r/chile/comments/1csug68/la_normalizaci%C3%B3n_de_las_drogas_est%C3%A1_dejando_la/")
 
 #-----Funcion para hacer scroll a la parte inferior de la pagina y esperar 3 segundos-----
 def Scroll_Down_Page():
@@ -70,3 +75,28 @@ for comentario in comentarios:
 driver.quit()
 print(comentarios_array)
 print('Cantidad de comentarios =', len(comentarios_array))
+
+
+#-----Guardar los comentarios limpios en una base de datos -----
+url = ""
+key = ""
+
+supabase = create_client(url, key)
+
+def insertar_comentarios(comentarios_array, url, key, minero):
+    try:
+        for comentario in comentarios_array:
+            supabase.table('Comentarios').insert({
+                'usuario': comentario['autor'],
+                'comentario': comentario['comentario'],
+                'fecha_com': comentario['fecha'],
+                'minero': minero,  # Agregar el minero al comentario
+                'fecha_add': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }).execute()
+
+        print("Comentarios a;adidos .")
+    
+    except Exception as e:
+        print("Error :", e)
+
+#insertar_comentarios(comentarios_array,url,key,minero) ESTA COMENTADO PORQUE NECESITA METODOS DE VALIDACION (QUE NO SE REPITA LA URL) 
