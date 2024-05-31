@@ -6,10 +6,8 @@ from supabase import create_client, Client
 from datetime import datetime
 import sys
 #-----CAMBIAR URL DE SCRAPING y nombre de minero -----
-minero = 'Sebastian Castro'
-linkscrap = 'https://www.reddit.com/r/chile/comments/1cqupkx/discusi%C3%B3n_random_semanal/ '
-
-
+minero = ''
+linkscrap = ''
 
 #-----CONFIGURACIONES SELENIUM-----
 
@@ -30,20 +28,18 @@ id_url_paracom = -1
 def validar_url(linkscrap):
     global id_url_paracom
     try:
-        # Verificar si la URL ya existe en la base de datos
         response = supabase.table('URLS').select('ruta').eq('ruta', linkscrap).execute()
         if response.data:
             print("La URL ya ha sido scrappeada anteriormente. Cerrando el programa.")
             sys.exit()
         else:
-            # Insertar la nueva URL en la base de datos y obtener el ID
             insert_response = supabase.table('URLS').insert({
                 'ruta': linkscrap,
                 'minero': minero,
-                'fecha_add': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                'fecha_add': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'red_social': "Reddit"
             }).execute()
 
-            # Recuperar el ID de la URL insertada
             if insert_response.data:
                 url_id = insert_response.data[0]['id_url']
                 print(f"La URL ha sido registrada con ID: {url_id}")
@@ -107,6 +103,7 @@ for comentario in comentarios:
     #print(f"Comentario: {texto_comentario}")
     #print(f"Fecha: {fecha_comentario}")
     #print()
+    
 #-----Se guardan los datos solo si existen (en la lista commentarios_array)-----
     if autor_comentario and texto_comentario and fecha_comentario:
             comentarios_array.append({
@@ -130,7 +127,9 @@ def insertar_comentarios(comentarios_array, minero,id_url_paracom):
                 'fecha_com': comentario['fecha'],
                 'minero': minero,  
                 'fecha_add': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                'id_url': id_url_paracom
+                'id_url': id_url_paracom,
+                
+
             }).execute()
             
 
